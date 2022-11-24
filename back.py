@@ -1,20 +1,41 @@
 import pandas as pd
 import numpy as np
 
-df = pd.read_csv('pill_db_after_preprocessing.csv')
-df.drop(df.columns[[0, 1]], axis=1, inplace=True)
-df.dropna(axis=0, inplace=True)
 
-pill_list = df['ITEM_NAME'].values.tolist()
 
-KEYWORDS = {0:['이름'],
-            1:['회사'],
-            2:['종류', '분류'],
-            3:['보관']}
+##### 데이터 전처리 #####
+
+df = pd.read_csv('pill.csv')
+df.drop(columns=['Unnamed: 0', 'itemSeq', 'itemImage', 'openDe', 'updateDe'], inplace=True)
+
+df.dropna(subset=['efcyQesitm'], inplace=True)
+
+cols = ['atpnWarnQesitm', 'atpnQesitm', 'intrcQesitm']
+
+df = df.fillna(' ')
+df['warn']=df[cols].apply(lambda row:' '.join(row.values.astype(str)), axis=1)
+df.drop(columns=cols, inplace=True)
+
+
+
+##### 약 이름, 키워드 규칙 #####
+
+PILLS = df['itemName'].values.tolist()
+KEYWORDS = {0:['회사', '제조사'],
+            1:['이름', '제품명'],
+            2:['효과', '효능', '약효'],
+            3:['용법', '복용', '얼마나', '언제', '적정'],
+            4:['부작용'],
+            5:['보관'],
+            6:['주의', '경고', '유의']}
+
+
+
+##### 유틸리티 함수 #####
 
 # 약 이름에 따라 알맞는 row index를 반환
 def getRIndex(pill):
-    return df.index[df['ITEM_NAME'] == pill][0]
+    return df.index[df['itemName'] == pill][0]
 
 # 제시된 키워드에 따라 알맞는 column index를 반환
 def getCIndex(keyword):
@@ -23,11 +44,24 @@ def getCIndex(keyword):
             return k
     return -1
 
+
+
+##### 주요 기능 함수 #####
+
 # 약 이름과 키워드에 따라 알맞는 data를 반환
 def getData(pill, keyword):
     ridx = getRIndex(pill)
     cidx = getCIndex(keyword)
     return df.iat[ridx, cidx]
+
+# 제시된 증상에 맞는 약 이름 list를 반환
+def whichPill(fac):
+    pills = []
+    for i in range(len(df)):
+        efcy = df.iat[i, 2]
+        if fac in efcy:
+            pills.append(df.iat[i, 1])
+    return pills
 
 # 입력 텍스트에 응답 키워드가 들어있는지 확인하여 키워드를 반환
 # Return -1 for 키워드 없음
@@ -56,7 +90,7 @@ def text2key(text):
 def text2pill(text):
     cnt = 0
     pills = []
-    for item in pill_list:
+    for item in PILLS:
         if item in text:
             cnt += 1
             pills.append(item)
@@ -67,6 +101,12 @@ def text2pill(text):
         return pills[0]
     return 0
 
+
+
+##### main격 함수 #####
+
+# front에서는 이 함수만 호출하면 됨
+# 입력 텍스트에 따라 적절한 응답 텍스트를 반환
 def respond(text):
     keyword = text2key(text)
     pill = text2pill(text)
@@ -79,12 +119,17 @@ def respond(text):
     else:
         return getData(pill, keyword)
 
-text1 = '안녕하세요, 슬카인정의 보관은 어떻게 하나요?'
-text2 = '슬카인정 보관방법'
+
+
+##### TEST CODE #####
+    
+text1 = '안녕하세요, 아네모정의 보관은 어떻게 하나요?'
+text2 = '아네모정 보관방법'
 text3 = '안녕하세요'
-text4 = '슬카인정 보관방법 제조사'
+text4 = '아네모정 보관방법 제조사'
 
 print(respond(text1))
 print(respond(text2))
 print(respond(text3))
 print(respond(text4))
+print(whichPill('편두통'))
