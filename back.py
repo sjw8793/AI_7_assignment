@@ -9,11 +9,11 @@ df = pd.read_csv('pill_processed.csv')
 
 
 
-##### Constant 선언 ######
+##### 전역 변수 ######
 
 PILLS = df['itemName'].values.tolist()
 
-NORMAL = {'인사': ['안녕'],
+NORMALS = {'인사': ['안녕'],
           '감사': ['고마워', '감사', '고맙'],
           '도움': ['도움']}
 
@@ -24,6 +24,8 @@ KEYWORDS = {0:['회사', '제조사'],
             4:['부작용'],
             5:['보관'],
             6:['주의', '경고', '유의'],}
+
+resBefore = 0
 
 
 
@@ -129,7 +131,7 @@ def text2pill(text):
 # Return -1 for 인삿말 없음
 # Return 인삿말 키워드 for 인삿말 있음
 def text2hi(text):
-    for k, v in NORMAL.items():
+    for k, v in NORMALS.items():
         for item in v:
             if item in text:
                 return k
