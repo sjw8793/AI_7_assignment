@@ -23,9 +23,9 @@ KEYWORDS = {0:['회사', '제조사'],
             3:['용법', '복용', '얼마나', '언제', '적정'],
             4:['부작용'],
             5:['보관'],
-            6:['주의', '경고', '유의'],}
+            6:['주의사항', '주의', '경고', '유의'],}
 
-resBefore = 0
+resBefore = [0, []]
 
 
 
@@ -37,12 +37,12 @@ def firstMessage():
 특정 증상으로 아플 때 어떠한 약의 도움을 받을 수 있는지,
 약에 관해 궁금한 사항은 무엇이든 물어봐 주세요.
 
-예시 1) 약 "냠냠정"의 보관법이 궁금할 때: (약 이름, 궁금한 사항)
-    => 냠냠정의 보관법은 뭐야?
+예시 1) 특정 약의 정보가 궁금할 때: (약 이름, 궁금한 사항)
+    => 냠냠정의 부작용 알려줘
     => 냠냠정 보관법
-    => 냠냠정 어떻게 보관해야 해? 등
+    => 냠냠정 얼마나 먹어야 해? 등
     
-예시 2) 배 아플 때 어떤 약을 사야 하는지 궁금할 때: (증상)
+예시 2) 특정 증상에 어떤 약을 사야 하는지 궁금할 때: (증상)
     => 복통
     => 해열 되는 감기약 알려줘
     => 두통에 먹는 약 등"""
@@ -73,7 +73,7 @@ def getData(pill, keyword):
 # 주어진 텍스트에서 조사를 제거한 단어들을 반환
 def text2words(text):
     words = text.split()
-    posts = ['은', '는', '랑', '이', '가', '을', '를', '의']
+    posts = ['은', '는', '랑', '이', '가', '을', '를', '의', '에']
     
     for i in range(len(words)):
         for post in posts:
@@ -96,7 +96,7 @@ def text2key(text):
         for keyword in v:
             if keyword in text:
                 cnt += 1
-                words.append(keyword)
+                words.append(v[0])
                 break
     
     if cnt == 0:
@@ -223,6 +223,13 @@ def respond(text):
 질문을 제대로 인식하지 못했거나, 데이터베이스에 물어보신 사항에 해당하는 정보가 없어요.
 물어보시고자 하는 내용의 주요 단어를 띄어쓰기로 구분해 다시 질문해 보시겠어요?"""
 
+    if (resBefore[0] == 1) and (text == '전체보기'):
+        pstr = ', '.join(resBefore[1])
+        res = "전체: [" + pstr + "] 등"
+        resBefore[0] = 0
+        resBefore[1] = []
+        return res     
+
     # 키워드가 여러 개인 경우
     if (keyword == 0):
         res = "한 번에 하나씩 질문해 주세요."
@@ -243,10 +250,19 @@ def respond(text):
 
         # 사용자가 증상에 맞는 약을 물어본 경우
         if not (cure == -1):
-            istr = ', '.join(cure[0]) #증상
-            pstr = ', '.join(cure[1]) #
-            res = "증상 [" + istr + "]에 대한 약은 [" + pstr + "] 등이 있습니다."
-        
+            listlen = len(cure[1])
+
+            if listlen > 5: # 해당하는 약이 6개 이상일 때
+                resBefore[0] = 1
+                resBefore[1] = cure[1]
+                istr = ', '.join(cure[0])     # 증상
+                pstr = ', '.join(cure[1][:5]) # 약
+                res = "증상 [" + istr + "]에 대한 약: [" + pstr + "] 등이 있습니다.\n 해당하는 약의 수가 5개를 초과하여 전체 " + str(listlen) + "개 중 5개만 출력하였습니다.\n 전체를 보고 싶으시다면 '전체보기'를 입력해 주세요."
+            else: # 해당하는 약이 6개 미만일 때
+                istr = ', '.join(cure[0]) # 증상
+                pstr = ', '.join(cure[1]) # 약
+                res = "증상 [" + istr + "]에 대한 약: [" + pstr + "] 등이 있습니다."
+                
         # 사용자가 인사한 경우
         elif not (key == -1):
             res = hi(key)
